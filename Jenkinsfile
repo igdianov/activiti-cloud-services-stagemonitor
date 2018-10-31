@@ -23,7 +23,7 @@ spec:
     }
     
     environment {
-      ORG               = "org.activiti.cloud"
+      ORG               = "org.activiti.cloud.common"
       APP_NAME          = "activiti-cloud-services-stagemonitor"
       CHARTMUSEUM_CREDS = credentials("jenkins-x-chartmuseum")
     }
