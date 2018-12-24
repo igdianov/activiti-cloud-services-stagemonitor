@@ -11,11 +11,6 @@ RELEASE_GREP_EXPR := '^[Rr]elease'
 
 # dependency on .PHONY prevents Make from 
 # thinking there's `nothing to be done`
-preview-version: .PHONY
-	$(eval VERSION = $(shell echo $(PREVIEW_VERSION)))	
-
-release-version: .PHONY
-	$(eval VERSION = $(shell echo $(RELEASE_VERSION)))
 
 git-rev-list: .PHONY
 	$(eval REV = $(shell git rev-list --tags --max-count=1 --grep $(RELEASE_GREP_EXPR)))
@@ -33,15 +28,19 @@ checkout: credentials
 	# ensure we're not on a detached head
 	git checkout $(RELEASE_BRANCH) 
 
-skaffold/release: release-version
-	${MAKE} skaffold/build
+skaffold/release:
+	$(eval VERSION = $(shell echo $(PREVIEW_VERSION)))	
+	@echo doing skaffold docker build with tag=$(VERSION)
+	export VERSION=$(VERSION) && skaffold build -f skaffold.yaml 
 
-skaffold/preview: preview-version
-	${MAKE} skaffold/build
+skaffold/preview: 
+	$(eval VERSION = $(shell echo $(RELEASE_VERSION)))
+	@echo doing skaffold docker build with tag=$(VERSION)
+	export VERSION=$(VERSION) && skaffold build -f skaffold.yaml 
 
 skaffold/build:
 	@echo doing skaffold docker build with tag=$(VERSION)
-	#skaffold build -f skaffold.yaml 
+	export VERSION=$(RELEASE_VERSION) && skaffold build -f skaffold.yaml 
 
 update-versions: updatebot/push updatebot/update-loop
 	; 
@@ -62,10 +61,8 @@ updatebot/update-loop:
 	@echo doing updatebot update-loop $(RELEASE_VERSION)
 	updatebot update-loop --poll-time-ms 60000
 
-preview: 
+preview-version: 
 	mvn versions:set -DnewVersion=$(PREVIEW_VERSION)
-	mvn install
-	${MAKE} skaffold/preview
 
 install: 
 	mvn clean install
@@ -75,16 +72,14 @@ verify:
 
 deploy: 
 	mvn clean deploy -DskipTests
-	${MAKE} skaffold/release
 
-jx-release-version:
+jx-release-version: 
 	$(shell jx-release-version > VERSION)
-	$(eval VERSION = $(shell cat VERSION))
-	$(eval RELEASE_VERSION = $(VERSION))
-	@echo Using next release version $(VERSION)
+	$(eval RELEASE_VERSION = $(shell cat VERSION))
+	@echo Using next release version $(RELEASE_VERSION)
 
-version: jx-release-version
-	mvn versions:set -DnewVersion=$(VERSION)
+next-version: jx-release-version
+	mvn versions:set -DnewVersion=$(RELEASE_VERSION)
 	
 snapshot: .PHONY
 	$(eval RELEASE_VERSION = $(shell mvn versions:set -DnextSnapshot -q && mvn help:evaluate -Dexpression=project.version -q -DforceStdout))
@@ -97,7 +92,7 @@ changelog: git-rev-list
 	@echo Creating Github changelog for release: $(RELEASE_VERSION)
 	jx step changelog --version v$(RELEASE_VERSION) --generate-yaml=false --rev=$(REV) --previous-rev=$(PREVIOUS_REV)
 
-commit: .PHONY
+commit: 
 	mvn versions:commit
 	git add --all
 	git commit -m "Release $(RELEASE_VERSION)" --allow-empty # if first release then no verion update is performed
