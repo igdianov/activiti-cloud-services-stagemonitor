@@ -12,7 +12,7 @@
     
     <groupId>org.activiti.cloud.common</groupId>
     <artifactId>activiti-cloud-services-stagemonitor</artifactId>
-    <version>7.0.0-SNAPSHOT</version>
+    <version>7.0.3</version>
 
     <name>Activiti Cloud :: Stagemonitor Service</name>
 
